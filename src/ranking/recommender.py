@@ -1,7 +1,7 @@
 """
 src/ranking/recommender.py
 
-Recommendation-based chunk re-ranker (competitive edge extension).
+Recommendation-based chunk re-ranker.
 
 Two-stage pipeline:
     Stage 1 — Coarse retrieval  : MinHash / SimHash / TF-IDF → top_k * 2 candidates
