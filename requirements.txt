@@ -7,7 +7,9 @@ scikit-learn==1.5.2
 # Numerical operations
 numpy==1.26.4
 
-# Web interface
+# Web interface (FastAPI + hand-built frontend; Streamlit kept for the legacy UI)
+fastapi==0.115.6
+uvicorn==0.32.1
 streamlit==1.39.0
 
 # LLM answer generation (OpenAI primary, Anthropic optional)

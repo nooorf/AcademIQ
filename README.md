@@ -321,7 +321,9 @@ AcademIQ/
 │       └── metrics_collector.py       # P50/P99 latency, cache hit rate, Precision@k
 │
 ├── app/
-│   └── streamlit_app.py               # Full Streamlit UI (chat, compare, health dashboard)
+│   ├── server.py                      # FastAPI server: JSON API + serves the web UI
+│   ├── web/                           # Hand-built frontend (Ask, Compare, Health, star-chart atlas)
+│   └── streamlit_app.py               # Legacy Streamlit UI
 │
 ├── experiments/
 │   ├── exp1_exact_vs_approx.py        # TF-IDF vs MinHash vs SimHash accuracy & latency
@@ -377,32 +379,47 @@ cp .env.example .env
 
 ### Step 1 — Place PDFs
 
-Copy your handbook PDFs into `data/raw/`:
+Each handbook gets its own folder (the extractor reads every PDF in the folder it's given):
 ```
-data/raw/ug_handbook.pdf
-data/raw/pg_handbook.pdf
+data/raw/ug/ug_handbook.pdf
+data/raw/pg/pg_handbook.pdf
 ```
 
 ### Step 2 — Ingest and Index
 
-```bash
-# Extract pages and chunk them
-python -m src.ingestion.pdf_extractor
-python -m src.ingestion.chunker
+Output file names come from `paths` in `config.yaml`: the UG handbook uses the unprefixed files, the PG handbook the `pg_` ones.
 
-# Build all four indexes
-python -m src.indexing.mapreduce_indexer       # MinHash + SimHash (parallel)
-python -m src.retrieval.tfidf_retriever        # TF-IDF index
-python -m src.ranking.recommender              # Re-ranker index
+```bash
+# Undergraduate
+python -m src.ingestion.pdf_extraction --input data/raw/ug --output data/processed/raw_pages.jsonl
+python -m src.ingestion.chunker        --input data/processed/raw_pages.jsonl --output data/processed/chunks.jsonl
+python -m src.retrieval.tfidf_retriever --chunks data/processed/chunks.jsonl --index data/processed/tfidf_index.pkl
+python -m src.retrieval.minhash_lsh     --chunks data/processed/chunks.jsonl --index data/processed/minhash_index.pkl
+python -m src.retrieval.simhash         --chunks data/processed/chunks.jsonl --index data/processed/simhash_index.pkl
+python -m src.ranking.recommender       --chunks data/processed/chunks.jsonl --index data/processed/reranker_index.pkl
+
+# Postgraduate
+python -m src.ingestion.pdf_extraction --input data/raw/pg --output data/processed/pg_raw_pages.jsonl
+python -m src.ingestion.chunker        --input data/processed/pg_raw_pages.jsonl --output data/processed/pg_chunks.jsonl
+python -m src.retrieval.tfidf_retriever --chunks data/processed/pg_chunks.jsonl --index data/processed/pg_tfidf_index.pkl
+python -m src.retrieval.minhash_lsh     --chunks data/processed/pg_chunks.jsonl --index data/processed/pg_minhash_index.pkl
+python -m src.retrieval.simhash         --chunks data/processed/pg_chunks.jsonl --index data/processed/pg_simhash_index.pkl
+python -m src.ranking.recommender       --chunks data/processed/pg_chunks.jsonl --index data/processed/pg_reranker_index.pkl
 ```
+
+The parallel MapReduce build (`python -m src.indexing.mapreduce_indexer --chunks data/processed/chunks.jsonl --method minhash --workers 4`) writes `minhash_mr_index.pkl` / `simhash_mr_index.pkl` for the scalability experiments; the apps read the indexes above.
 
 ### Step 3 — Launch the Web App
 
 ```bash
-streamlit run app/streamlit_app.py
+python -m app.server
 ```
 
-Open `http://localhost:8501` in your browser. Select UG or PG handbook, then start asking questions.
+The app opens at `http://127.0.0.1:8000`. Pick the UG or PG handbook in the top bar, then ask a question. Each answer cites handbook section and page, and the star chart on the right shows where the retrieved chunks sit in the corpus. **Compare** runs one question through TF-IDF, MinHash + LSH, SimHash and Hybrid RRF side by side; **Health** shows live latency, cache and Precision@k for the session.
+
+Options: `--port 8080`, `--host 0.0.0.0`, `--no-browser`. The JSON API is documented at `/api/docs`.
+
+The previous Streamlit interface still runs with `streamlit run app/streamlit_app.py`.
 
 ### Step 4 — Run Experiments (Optional)
 
@@ -1339,7 +1356,9 @@ The corpus is duplicated 1×, 2×, 5×, and 10× to simulate scaling from ~500 t
 | `pdfplumber` | 0.11.4 | PDF text extraction with layout awareness |
 | `scikit-learn` | 1.5.2 | TF-IDF vectorization, cosine similarity |
 | `numpy` | 1.26.4 | Numerical operations, array math |
-| `streamlit` | 1.39.0 | Web interface framework |
+| `fastapi` | 0.115.6 | JSON API and static serving for the web interface |
+| `uvicorn` | 0.32.1 | ASGI server for FastAPI |
+| `streamlit` | 1.39.0 | Legacy web interface |
 | `openai` | 1.51.0 | OpenAI API client (GPT-4o-mini) |
 | `anthropic` | 0.25.8 | Anthropic API client (Claude models) |
 | `pyyaml` | 6.0.2 | YAML config file parsing |

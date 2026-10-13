@@ -39,3 +39,6 @@ experiments/results/
 .vscode/
 .idea/
 EOF
+
+# Impeccable design-tool workspace (sketches, review captures, tokens)
+.impeccable/
