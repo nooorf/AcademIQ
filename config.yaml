@@ -1,0 +1,84 @@
+# config.yaml — canonical hyperparameter store
+# ALL Python modules read from here via src/utils/config_loader.py
+# Previously this file existed but was never read — all params were hardcoded.
+
+ingestion:
+  chunk_size: 350        # target words per chunk
+  chunk_overlap: 50      # word overlap between consecutive chunks
+  min_chunk_size: 100    # discard chunks shorter than this
+
+minhash:
+  num_perm: 128          # number of hash permutations (more = accurate, slower)
+  threshold: 0.3         # Jaccard similarity threshold for LSH banding
+  weighted: true         # use TF-IDF weighted MinHash (better retrieval relevance)
+
+simhash:
+  bits: 64               # fingerprint size in bits
+  hamming_threshold: 10  # max Hamming distance to consider "similar"
+
+tfidf:
+  ngram_range: [1, 2]    # unigrams + bigrams
+  max_features: 50000    # vocabulary size cap
+  min_df: 1              # keep rare terms (critical for 107-chunk corpus)
+  max_df: 0.85           # drop terms in >85% of chunks
+  sublinear_tf: true     # log-scale TF to dampen high-frequency terms
+
+retrieval:
+  top_k: 5               # number of final chunks returned to LLM
+  method: "hybrid"       # tfidf | minhash | simhash | hybrid
+  candidates_multiplier: 2  # retrieve top_k × this before re-ranking
+
+recommender:
+  diversity_penalty: 0.15  # score deduction per repeated section in top-k
+
+generation:
+  model: "gpt-4o-mini"   # LLM model; set ANTHROPIC_API_KEY to use Claude
+  max_tokens: 800        # raised from 512 — complex policy answers need room
+  temperature: 0.1       # low temperature for factual grounding
+
+paths:
+  # Legacy (single-handbook) paths — kept for experiments & CLI scripts
+  raw_pages:      "data/processed/raw_pages.jsonl"
+  chunks:         "data/processed/chunks.jsonl"
+  tfidf_index:    "data/processed/tfidf_index.pkl"
+  minhash_index:  "data/processed/minhash_index.pkl"
+  simhash_index:  "data/processed/simhash_index.pkl"
+  reranker_index: "data/processed/reranker_index.pkl"
+  results_dir:    "experiments/results"
+
+  # UG handbook indexes (current data)
+  ug_raw_pages:      "data/processed/raw_pages.jsonl"
+  ug_chunks:         "data/processed/chunks.jsonl"
+  ug_tfidf_index:    "data/processed/tfidf_index.pkl"
+  ug_minhash_index:  "data/processed/minhash_index.pkl"
+  ug_simhash_index:  "data/processed/simhash_index.pkl"
+  ug_reranker_index: "data/processed/reranker_index.pkl"
+
+  # PG handbook indexes (built after indexing PG PDF)
+  pg_raw_pages:      "data/processed/pg_raw_pages.jsonl"
+  pg_chunks:         "data/processed/pg_chunks.jsonl"
+  pg_tfidf_index:    "data/processed/pg_tfidf_index.pkl"
+  pg_minhash_index:  "data/processed/pg_minhash_index.pkl"
+  pg_simhash_index:  "data/processed/pg_simhash_index.pkl"
+  pg_reranker_index: "data/processed/pg_reranker_index.pkl"
+
+mapreduce:
+  n_workers: 4             # parallel workers for MapReduce indexing
+  chunk_partition_size: 50 # chunks per map partition
+
+hybrid:
+  strategy: "rrf_all"      # rrf_all | rrf_lsh | cascade | adaptive
+  rrf_k: 60               # RRF constant (Cormack 2009)
+  method_weights:          # per-method weight in weighted RRF
+    tfidf: 1.0
+    minhash: 0.8
+    simhash: 0.6
+
+cache:
+  enabled: true
+  max_size: 256            # max cached queries
+  ttl_seconds: 3600        # cache expiry (1 hour)
+
+profiling:
+  enabled: true
+  max_history: 500         # max query records in metrics collector

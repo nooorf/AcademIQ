@@ -1,0 +1,35 @@
+# Core PDF processing
+pdfplumber==0.11.4
+
+# Exact retrieval + re-ranker
+scikit-learn==1.5.2
+
+# Numerical operations
+numpy==1.26.4
+
+# Web interface
+streamlit==1.39.0
+
+# LLM answer generation (OpenAI primary, Anthropic optional)
+openai==1.51.0
+anthropic==0.25.8
+
+# Config loading
+pyyaml==6.0.2
+
+# Environment variables
+python-dotenv==1.0.1
+
+# Hashing for SimHash
+mmh3==4.1.0
+
+# Experiment analysis + plots
+pandas==2.2.3
+matplotlib==3.9.2
+
+# Progress bars
+tqdm==4.66.5
+
+# Testing
+pytest==8.3.2
+pytest-cov==5.0.0
