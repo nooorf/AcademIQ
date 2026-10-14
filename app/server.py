@@ -70,7 +70,7 @@ METHODS = {
 }
 COMPARE_METHODS = ["TF-IDF", "MinHash+LSH", "SimHash", "Hybrid (All Methods)"]
 
-# Same proxy the Streamlit dashboard used: share of top-k chunks whose
+# Precision@k proxy: share of top-k chunks whose
 # retriever score clears this floor. No manual relevance labels needed.
 RELEVANCE_THRESHOLD = 0.05
 

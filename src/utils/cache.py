@@ -37,7 +37,7 @@ class QueryCache:
       - OrderedDict for O(1) LRU eviction (move_to_end + popitem).
       - SHA-256 key hashing prevents pathological key sizes from long queries.
       - TTL prevents stale results after index rebuild.
-      - Thread lock guards concurrent Streamlit reruns.
+      - Thread lock guards concurrent API requests.
     """
 
     def __init__(self,

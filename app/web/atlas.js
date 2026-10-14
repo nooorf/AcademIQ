@@ -145,9 +145,9 @@ export class Atlas {
 
     const defs = el("defs", {}, svg);
     const grad = el("radialGradient", { id: "star-glow" }, defs);
-    el("stop", { offset: "0", "stop-color": "#f2f0e6", "stop-opacity": "0.55" }, grad);
-    el("stop", { offset: "0.35", "stop-color": "#f2f0e6", "stop-opacity": "0.12" }, grad);
-    el("stop", { offset: "1", "stop-color": "#f2f0e6", "stop-opacity": "0" }, grad);
+    el("stop", { offset: "0", "stop-color": "#dddcd3", "stop-opacity": "0.55" }, grad);
+    el("stop", { offset: "0.35", "stop-color": "#dddcd3", "stop-opacity": "0.12" }, grad);
+    el("stop", { offset: "1", "stop-color": "#dddcd3", "stop-opacity": "0" }, grad);
 
     this._drawGraticule();
     if (!this.sky) return;

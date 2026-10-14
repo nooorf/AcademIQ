@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
-  <img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Streamlit">
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
   <img src="https://img.shields.io/badge/Scikit--Learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white" alt="scikit-learn">
   <img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI">
   <img src="https://img.shields.io/badge/Anthropic-Claude-E07B39?style=for-the-badge" alt="Anthropic">
@@ -41,7 +41,7 @@
   - [10. Preprocessing Utilities](#10-preprocessing-utilities)
   - [11. Query Cache](#11-query-cache)
   - [12. Metrics Collector](#12-metrics-collector)
-  - [13. Streamlit Web Interface](#13-streamlit-web-interface)
+  - [13. Web Interface](#13-web-interface)
 - [Key Algorithms Explained](#key-algorithms-explained)
 - [Data Formats](#data-formats)
 - [Configuration Reference](#configuration-reference)
@@ -163,7 +163,7 @@ The system is **not a chatbot**. It is a multi-stage Big Data retrieval pipeline
 │  │                                 │                                    │   │
 │  │                                 ▼                                    │   │
 │  │  ┌──────────────────────────────────────────────────────────────┐   │   │
-│  │  │     Streamlit App — Answer · Sources · Timing · Dashboard    │   │   │
+│  │  │     Web App (FastAPI) — Answer · Sources · Atlas · Health    │   │   │
 │  │  └──────────────────────────────────────────────────────────────┘   │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────────────────────┘
@@ -215,7 +215,7 @@ The pipeline has two phases: **offline indexing** (runs once, builds indexes fro
 ### Phase 2 — Online Querying
 
 ```
-1. User submits query via Streamlit or CLI
+1. User submits query via the web app (POST /api/ask) or CLI
 
 2. QueryCache.get(key) — if hit, return cached result immediately (< 1ms)
 
@@ -259,7 +259,7 @@ The pipeline has two phases: **offline indexing** (runs once, builds indexes fro
 
 9. QueryCache.put() — store result for future identical queries
 
-10. Streamlit renders: answer card, source chunks, pipeline timing bars, health dashboard
+10. Web app renders: cited answer, ranked sources, stage timings, star-chart atlas, health view
 ```
 
 ---
@@ -322,8 +322,7 @@ AcademIQ/
 │
 ├── app/
 │   ├── server.py                      # FastAPI server: JSON API + serves the web UI
-│   ├── web/                           # Hand-built frontend (Ask, Compare, Health, star-chart atlas)
-│   └── streamlit_app.py               # Legacy Streamlit UI
+│   └── web/                           # Hand-built frontend (Ask, Compare, Health, star-chart atlas)
 │
 ├── experiments/
 │   ├── exp1_exact_vs_approx.py        # TF-IDF vs MinHash vs SimHash accuracy & latency
@@ -418,8 +417,6 @@ python -m app.server
 The app opens at `http://127.0.0.1:8000`. Pick the UG or PG handbook in the top bar, then ask a question. Each answer cites handbook section and page, and the star chart on the right shows where the retrieved chunks sit in the corpus. **Compare** runs one question through TF-IDF, MinHash + LSH, SimHash and Hybrid RRF side by side; **Health** shows live latency, cache and Precision@k for the session.
 
 Options: `--port 8080`, `--host 0.0.0.0`, `--no-browser`. The JSON API is documented at `/api/docs`.
-
-The previous Streamlit interface still runs with `streamlit run app/streamlit_app.py`.
 
 ### Step 4 — Run Experiments (Optional)
 
@@ -1003,7 +1000,7 @@ Singleton instance `metrics` imported by all modules.
 - **`cache_hit_rate`** — Fraction of queries that were cache hits.
 - **`method_breakdown()`** — Dict of `{method: count}` — shows which retrieval methods users prefer.
 - **`precision_k_stats()`** — Aggregates the `precision_k` field across all records to compute P50, P99, and average Precision@k in real-time.
-- **`summary()`** — Full metrics dict for the Streamlit dashboard.
+- **`summary()`** — Full metrics dict for the web app's Health view.
 - **`recent(n)`** — Last `n` `QueryRecord` objects — used for the recent queries table.
 
 #### Real-Time Precision@k Computation
@@ -1012,76 +1009,36 @@ Without manual relevance labels, AcademIQ computes a proxy Precision@k: the frac
 
 ---
 
-### 13. Streamlit Web Interface
+### 13. Web Interface
 
-**File:** `app/streamlit_app.py`
+**Files:** `app/server.py`, `app/web/` (`index.html`, `app.js`, `atlas.js`, `styles.css`, self-hosted fonts)
 
-The web interface is a full-featured, production-grade Streamlit application with a premium dark theme, animations, and three operational modes.
+A FastAPI server wraps the pipeline (retrievers, re-ranker, answer generator, cache, metrics) in a small JSON API and serves a hand-built frontend with no framework and no build step. Start it with `python -m app.server`; it opens at `http://127.0.0.1:8000`.
 
-#### Visual Design
+#### Views
 
-Over 1,000 lines of custom CSS provide:
-- **Dark theme** with CSS custom properties for colors, gradients, shadows
-- **Animated background**: floating particle orbs (10 CSS keyframe animations) + shooting streaks
-- **Hero section**: gradient mesh background with rotating blob animations
-- **Glass-card aesthetic**: semi-transparent cards with backdrop-filter blur and hover lift effects
-- **Custom components**: styled sidebar, input field, buttons, tabs, chat bubbles, progress bars
+- **Ask** — question box with Method (TF-IDF, MinHash + LSH, SimHash, Hybrid all three, Hybrid LSH only, Cascade), Top-k and Answer mode (Extractive, or LLM when an API key is set). The answer carries a numbered citation on every sentence, followed by a stage-timing breakdown (retrieval per method, re-rank, generate) and the ranked sources.
+- **Compare** — runs one question through TF-IDF, MinHash + LSH, SimHash and Hybrid RRF side by side, with per-method timings and a rank-agreement table showing where each method placed each section.
+- **Health** — latency per query, P50/P99 latency, query-cache hit rate, Precision@k, method usage and a recent-queries log for the current server session.
 
-#### Handbook Selection
+The UG/PG switch in the header picks the handbook; each one loads its own indexes from the `paths` in `config.yaml`. If a handbook's indexes are missing or fail to load, the view says so and lists the commands to rebuild them.
 
-The first screen the user sees. Prompts the user to select **UG Handbook** or **PG Handbook** before any query. This selection determines which set of indexes are loaded:
+#### Star-Chart Atlas
 
-- `_load_ug_indexes()` — Loads UG chunks + UG TF-IDF + UG MinHash + UG SimHash + shared reranker. Cached by Streamlit's `@st.cache_resource`.
-- `_load_pg_indexes()` — Loads PG chunks + PG TF-IDF. (PG handbook uses TF-IDF only by default.)
-- The selected handbook is stored in `st.session_state.handbook` ("ug" or "pg").
-- Cache keys include the handbook name — UG and PG results never cross-contaminate.
+The right side of Ask and Compare draws the handbook as a star chart. Every chunk is a star placed by its TF-IDF vector, projected to two dimensions (TruncatedSVD, then PCA). A question goes through the same two transforms, so it lands next to the chunks it resembles; star size shows TF-IDF similarity to the question, and retrieved chunks are ringed and numbered by rank. Hovering a source lights its star and vice versa. In Compare, each method's picks are marked on the same sky with their own shape.
 
-#### Mode 1: Chat Mode
+#### API
 
-The primary user interface. Mimics a chat application:
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/status` | Handbook availability, answer backends, config |
+| `GET /api/atlas?handbook=` | 2-D projection of every chunk (the star chart) |
+| `POST /api/ask` | Retrieve + re-rank + generate, fully timed |
+| `POST /api/compare` | One query across TF-IDF / MinHash / SimHash / Hybrid |
+| `GET /api/health` | P50/P99 latency, cache, Precision@k, recent queries |
+| `POST /api/cache/clear` | Empty the query cache |
 
-**Sidebar controls:**
-- **Retrieval Method**: dropdown with 7 options — "Hybrid (All)", "TF-IDF Only", "MinHash LSH Only", "SimHash Only", "Hybrid (LSH only)", "Cascade", "Adaptive"
-- **Top-K Results**: slider from 1 to 10 (default 5)
-- **Answer Mode**: toggle between "LLM Generation" and "Extractive"
-
-**Query flow:**
-1. User types query in chat input
-2. `execute_query()` checks cache — returns instantly if hit (shown with "⚡ Cache Hit" badge)
-3. If miss: runs selected retrieval method → rerank → generate
-4. Answer displayed in assistant chat bubble with:
-   - Method badge ("Hybrid", "TF-IDF", etc.)
-   - Answer mode badge ("LLM" or "Extractive")
-   - Cache status badge
-   - Chunk count badge
-5. **Pipeline Visualization**: animated latency bars showing retrieval_ms, rerank_ms, generation_ms breakdown
-6. **Source Chunks**: expandable section showing each retrieved chunk with:
-   - Rank position
-   - Section and page citation
-   - Query keyword highlighting (matching terms highlighted in the chunk text)
-   - Relevance score
-
-#### Mode 2: Compare Mode
-
-Side-by-side comparison of all four methods on a single query:
-- 4 columns: TF-IDF | MinHash | SimHash | Hybrid
-- Each column shows: latency, result count, top 3 chunk previews
-- Useful for understanding which method finds which chunks
-
-#### Mode 3: System Health Dashboard
-
-Live metrics dashboard:
-- **Metric cards**: Total Queries, P50 Latency, P99 Latency, Cache Hit Rate, Avg Chunks Used
-- **Method Breakdown**: bar chart of query count per retrieval method
-- **Precision@k Gauge**: real-time P50 / P99 / avg Precision@k across all queries
-- **Recent Queries Table**: last 10 queries with method, total latency, cache hit status, chunk count
-
-#### Helper Functions
-
-- **`highlight_keywords(text, query)`** — Finds query tokens in chunk text and wraps them in `<mark>` HTML tags for visual highlighting.
-- **`render_pipeline_viz(retrieval_ms, rerank_ms, gen_ms)`** — Renders an animated horizontal progress bar broken into three colored segments proportional to each phase's latency.
-- **`render_chunk(chunk, rank, query)`** — Renders a single source chunk as a styled card with section header, page badge, highlighted text, and score.
-- **`execute_query(query, handbook, method, top_k, answer_mode)`** — Main orchestrator: cache lookup → retrieval → rerank → generate → record metrics → cache store.
+Interactive API docs are served at `/api/docs`.
 
 ---
 
@@ -1358,7 +1315,6 @@ The corpus is duplicated 1×, 2×, 5×, and 10× to simulate scaling from ~500 t
 | `numpy` | 1.26.4 | Numerical operations, array math |
 | `fastapi` | 0.115.6 | JSON API and static serving for the web interface |
 | `uvicorn` | 0.32.1 | ASGI server for FastAPI |
-| `streamlit` | 1.39.0 | Legacy web interface |
 | `openai` | 1.51.0 | OpenAI API client (GPT-4o-mini) |
 | `anthropic` | 0.25.8 | Anthropic API client (Claude models) |
 | `pyyaml` | 6.0.2 | YAML config file parsing |

@@ -430,4 +430,7 @@ if __name__ == "__main__":
                         default=cfg("paths", "minhash_index",
                                     default="data/processed/minhash_index.pkl"))
     args = parser.parse_args()
-    main(args.chunks, args.index)
+    # Build via the importable module so pickled MinHash objects reference
+    # src.retrieval.minhash_lsh.MinHash, not __main__.MinHash (unloadable elsewhere)
+    from src.retrieval.minhash_lsh import main as _main
+    _main(args.chunks, args.index)

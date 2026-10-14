@@ -241,6 +241,7 @@ function renderAsk() {
   view.innerHTML = `
     <div class="split">
       <section class="col" aria-label="Ask the handbook">
+        <h1 class="page-title"><b>AcademIQ:</b> NUST SEECS Policy Atlas</h1>
         <form class="query" id="ask-form" autocomplete="off">
           <label class="query-field">
             <span class="sr-only">Your question</span>
@@ -302,7 +303,7 @@ function renderAskBody() {
   if (pendingQuery) {
     body.innerHTML = `
       <div class="pending" aria-live="polite">
-        <h1 class="asked">${esc(pendingQuery)}</h1>
+        <h2 class="asked">${esc(pendingQuery)}</h2>
         <p>Searching the ${bookLabel(book).toLowerCase()} handbook</p>
       </div>`;
     return;
@@ -429,7 +430,7 @@ function answerHTML(r) {
 
   return `
     <article aria-live="polite">
-      <h1 class="asked">${esc(r.query)}</h1>
+      <h2 class="asked">${esc(r.query)}</h2>
       <div class="meta">${meta.map((m) => `<span>${m}</span>`).join("")}</div>
       ${answer}
       <div class="block">${label("Stage timings")}${eph(stageRows)}${bar}</div>

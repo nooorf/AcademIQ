@@ -43,7 +43,7 @@ class MetricsCollector:
     Thread-safe metrics aggregator.
 
     Stores the last N query records and provides percentile-based
-    latency statistics for the Streamlit dashboard.
+    latency statistics for the web app's Health view.
     """
 
     def __init__(self, max_history: int = 500):

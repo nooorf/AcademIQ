@@ -58,7 +58,7 @@ def generator():
     return AnswerGenerator()
 
 
-# ── RRF helper (mirrors app/streamlit_app.py logic) ──────────────────────────
+# ── RRF helper (mirrors HybridRetriever's RRF logic) ─────────────────────────
 
 def rrf_fuse(results_lists: list[list[dict]], k: int = 60) -> list[dict]:
     rrf_scores: dict[str, float] = {}

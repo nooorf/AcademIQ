@@ -181,7 +181,7 @@ class ChunkReranker:
 
         FIX: Returns a NEW sorted list (deep-copies chunks) — previously
         mutated the caller's list in-place, breaking idempotency and
-        corrupting stored session-state scores in the Streamlit app.
+        corrupting scores the caller had already stored.
 
         Args:
             chunks  : list of chunk dicts already scored by rerank().
